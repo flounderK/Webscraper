@@ -44,7 +44,8 @@ class Pagescraper:
         self.additional_link_generator = None
 
     def downloader(self, link, file_name):
-        """Downloader function should take in a session, a link, and the name of the file to create"""
+        """Downloader function should take in a session, a link, and the name of the file to create.
+        Nothing should be returned, but exceptions may be raised"""
         try:
             self.downloader_func(self.session, link, file_name)
         except Exception as err:
@@ -53,7 +54,7 @@ class Pagescraper:
         self.first_downloader_pass = False
 
     def parser(self, file):
-        """parser should return a tuple in the form:
+        """parser should accept a file name parameter and return a tuple in the form:
         (next_link, {additional_link: filename, additional_link: filename})"""
         try:
             self.next_link, self.additional_links = self.parser_func(file)
@@ -115,12 +116,10 @@ class Pagescraper:
                 break
 
     def __repr__(self):
-        return f"""State: {self.state}
-                Page link: {self.page_link}
-                Next page link: {self.next_link}
-                downloaded files: {', '.join([i for i in self.downloaded_files])}
-                additional links: {self.additional_links}
-
-                """
+        return f"State: {self.state}\n" \
+                f"Page link: {self.page_link}\n"\
+                f"Next page link: {self.next_link}\n"\
+                f"downloaded files: {', '.join([i for i in self.downloaded_files])}\n"\
+                f"additional links: {self.additional_links}\n"
 
 
