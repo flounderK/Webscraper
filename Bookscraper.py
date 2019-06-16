@@ -1,6 +1,6 @@
 from Pagescraper import Pagescraper, State
 import time
-
+import requests
 # TODO: Find a good way to mark the end of a book
 
 
@@ -66,4 +66,23 @@ class Bookscraper:
                 break
 
         log_file.close()
+
+
+def downloader(session, url, filename, **kwargs):
+    try:
+        r = session.get(url, **kwargs)
+    except requests.ConnectionError as e:
+        r = requests.Response
+        r.status_code = 0
+    except requests.exceptions.ReadTimeout as e:
+        r = requests.Response
+        r.status_code = 0
+
+    if r.status_code == 200:
+        with open(filename, "wb") as f:
+            f.write(r.content)
+    else:
+        raise Exception("Failed to connect")
+
+
 
