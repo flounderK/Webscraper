@@ -20,7 +20,7 @@ class PagescraperTest(unittest.TestCase):
 
     def testbookscraper(self):
         book_scraper = Bookscraper("session", "link", mock_parser, mock_downloader, book_name="bookname",
-                                   max_page_count=800)
+                                   max_page_count=25)
         try:
             book_scraper.run()
         except Exception as err:

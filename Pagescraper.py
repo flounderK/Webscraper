@@ -1,4 +1,5 @@
 from enum import Enum
+import os
 
 
 class State(Enum):
@@ -13,7 +14,7 @@ class State(Enum):
 
 
 class Pagescraper:
-    def __init__(self, link, page_number, parser_func, downloader_func, retry_count=3, downloader_path=None):
+    def __init__(self, link, page_number, parser_func, downloader_func, retry_count=3, downloader_path=os.getcwd()):
         """
         Template for a scraper designed to download a page, find a specific link in the page, and
         download other specified files from the page. The user must supply a function for downloading and parsing.
@@ -38,8 +39,8 @@ class Pagescraper:
         self.downloaded_files = list()
         self.session = None
         self.downloader_path = downloader_path
-        self.file_name = f"page{page_number}.html"
-        self.log_file_name = f"page{page_number}.log"
+        self.file_name = os.path.join(self.downloader_path, f"page{page_number}.html")
+        self.log_file_name = os.path.join(self.downloader_path, f"page{page_number}.log")
         self.first_downloader_pass = True
         self.additional_link_generator = None
 
@@ -97,8 +98,9 @@ class Pagescraper:
                         continue
                     for retry in range(0, self.retrys):
                         try:
-                            self.downloader(link, self.additional_links[link])
-                            self.downloaded_files.append(self.additional_links[link])
+                            new_file_path = os.path.join(self.downloader_path, self.additional_links[link])
+                            self.downloader(link, new_file_path)
+                            self.downloaded_files.append(new_file_path)
                             break
                         except Exception as err:
                             pass

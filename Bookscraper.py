@@ -1,21 +1,23 @@
 from Pagescraper import Pagescraper, State
 import time
 import requests
+import shutil
+import os
 # TODO: Find a good way to mark the end of a book
 
 
 class Bookscraper:
-    def __init__(self, session, link, parser_func, downloader_func, end_link=None, max_page_count=None,
-                 book_name="", link_page_number=1):
+    def __init__(self, session, link, parser_func, downloader_func, book_name, end_link=None, max_page_count=None,
+                 link_page_number=1):
         """
         Wrapper class for use of Pagescraper, auto increments pages and logs Pagescraper info
         :param session:
         :param link:
         :param parser_func:
         :param downloader_func:
+        :param book_name:
         :param end_link:
         :param max_page_count:
-        :param book_name:
         :param link_page_number:
         """
         self.start_link = link
@@ -26,21 +28,25 @@ class Bookscraper:
         self.parser_func = parser_func
         self.downloader_func = downloader_func
         self.book_name = book_name
-        self.log_file = f"Bookscraper_{self.book_name}.log"
+        self.output_path = os.path.join(os.getcwd(), self.book_name)
+        self.log_file = os.path.join(self.output_path, f"Bookscraper_{self.book_name}.log")
         self.end_link = end_link
         self.max_page_count = max_page_count
         self.current_page_count = 0
+        os.makedirs(self.output_path, exist_ok=True)
 
         if self.end_link is None and self.max_page_count is None:
             print("Running a bookscraper without setting an end_link or max_page_count will likely end in "
                   "a parsing error or the book scraper beginning to download the whole book again (debpending on "
-                  "the configuration of the targeted website)")
+                  "the configuration of the targeted website. Also doing that could fill up your drive, so don't)")
 
     def run(self):
         log_file = open(self.log_file, "w")
         while True:
+            downloader_path = os.path.join(self.output_path, f"{self.current_page_number}")
+            os.makedirs(downloader_path, exist_ok=True)
             page_scraper = Pagescraper(self.current_link, self.current_page_number,
-                                       self.parser_func, self.downloader_func)
+                                       self.parser_func, self.downloader_func, downloader_path=self.output_path)
             page_scraper.give_session(self.session)
             while page_scraper.state != State.FINISHED and page_scraper.state != State.PARSER_ERROR and \
                     page_scraper.state != State.ERROR:
@@ -68,21 +74,16 @@ class Bookscraper:
         log_file.close()
 
 
-def downloader(session, url, filename, **kwargs):
-    try:
-        r = session.get(url, **kwargs)
-    except requests.ConnectionError as e:
-        r = requests.Response
-        r.status_code = 0
-    except requests.exceptions.ReadTimeout as e:
-        r = requests.Response
-        r.status_code = 0
+def downloader(session: requests.session, url: str, filename: str, **kwargs):
+    with session.get(url, stream=True, **kwargs) as r:
+        if r.status_code == 200:
+            r.raw.decode_content = True
+            with open(filename, "wb") as f:
+                shutil.copyfileobj(r.raw, f)
+        else:
+            raise Exception("Failed to connect")
 
-    if r.status_code == 200:
-        with open(filename, "wb") as f:
-            f.write(r.content)
-    else:
-        raise Exception("Failed to connect")
+
 
 
 
