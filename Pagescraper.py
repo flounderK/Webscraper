@@ -1,5 +1,6 @@
 from enum import Enum
 import os
+from abc import ABC, abstractmethod, ABCMeta
 
 
 class State(Enum):
@@ -13,8 +14,18 @@ class State(Enum):
     ERROR = 7
 
 
-class Pagescraper:
-    def __init__(self, link, page_number, parser_func, downloader_func, retry_count=3, downloader_path=os.getcwd()):
+class ParserReturn:
+    def __init__(self):
+        self.next_link = str()
+        self.additional_links = dict()
+
+    def __repr__(self):
+        return f"{self.next_link}\n" \
+               f"{self.additional_links}"
+
+
+class AbsPagescraper(ABC):
+    def __init__(self, link, page_number, retry_count=3, downloader_path=os.getcwd()):
         """
         Template for a scraper designed to download a page, find a specific link in the page, and
         download other specified files from the page. The user must supply a function for downloading and parsing.
@@ -31,8 +42,6 @@ class Pagescraper:
         self.page_link = link
         self.next_link = ""
         self.additional_links = dict()
-        self.parser_func = parser_func
-        self.downloader_func = downloader_func
         self.retry_count = retry_count
         self.retrys = retry_count
         self.page_number = page_number
@@ -44,21 +53,29 @@ class Pagescraper:
         self.first_downloader_pass = True
         self.additional_link_generator = None
 
-    def downloader(self, link, file_name):
+    @abstractmethod
+    def downloader(self, session, link, filename):
+        pass
+
+    @abstractmethod
+    def parser(self, file_name):
+        pass
+
+    def __downloader(self, link, file_name):
         """Downloader function should take in a session, a link, and the name of the file to create.
         Nothing should be returned, but exceptions may be raised"""
         try:
-            self.downloader_func(self.session, link, file_name)
+            self.downloader(self.session, link, file_name)
         except Exception as err:
             self.state = State.DOWNLOADER_ERROR
             self.retry_count -= 1
         self.first_downloader_pass = False
 
-    def parser(self, file):
+    def __parser(self, file) -> ParserReturn:
         """parser should accept a file name parameter and return a tuple in the form:
         (next_link, {additional_link: filename, additional_link: filename})"""
         try:
-            self.next_link, self.additional_links = self.parser_func(file)
+            self.next_link, self.additional_links = self.parser(file)
             self.additional_link_generator = self.__get_additional_link()
             self.state = State.RUNNING_DOWNLOADER
         except Exception as err:
@@ -88,7 +105,7 @@ class Pagescraper:
                     pass
             elif self.state == State.RUNNING_DOWNLOADER:
                 if self.first_downloader_pass is True:
-                    self.downloader(self.page_link, self.file_name)
+                    self.__downloader(self.page_link, self.file_name)
                     self.downloaded_files.append(self.file_name)
                     self.state = State.RUNNING_PARSER
                 else:
@@ -99,14 +116,14 @@ class Pagescraper:
                     for retry in range(0, self.retrys):
                         try:
                             new_file_path = os.path.join(self.downloader_path, self.additional_links[link])
-                            self.downloader(link, new_file_path)
+                            self.__downloader(link, new_file_path)
                             self.downloaded_files.append(new_file_path)
                             break
                         except Exception as err:
                             pass
 
             elif self.state == State.RUNNING_PARSER:
-                self.parser(self.file_name)
+                self.__parser(self.file_name)
             elif self.state == State.DOWNLOADER_ERROR:
                 if self.retry_count == 0:
                     self.state = State.ERROR

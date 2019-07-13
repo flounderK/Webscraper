@@ -1,4 +1,4 @@
-from Pagescraper import Pagescraper, State
+from Pagescraper import State
 import time
 import requests
 import shutil
@@ -7,14 +7,13 @@ import os
 
 
 class Bookscraper:
-    def __init__(self, session, link, parser_func, downloader_func, book_name, end_link=None, max_page_count=None,
+    def __init__(self, session, link, page_scraper, book_name, end_link=None, max_page_count=None,
                  link_page_number=1):
         """
         Wrapper class for use of Pagescraper, auto increments pages and logs Pagescraper info
         :param session:
         :param link:
-        :param parser_func:
-        :param downloader_func:
+        :param page_scraper: A subclass of AbsPagescraper
         :param book_name:
         :param end_link:
         :param max_page_count:
@@ -25,8 +24,7 @@ class Bookscraper:
         self.current_link = link
         self.current_page_number = link_page_number
         self.session = session
-        self.parser_func = parser_func
-        self.downloader_func = downloader_func
+        self.page_scraper = page_scraper
         self.book_name = book_name
         self.output_path = os.path.join(os.getcwd(), self.book_name)
         self.log_file = os.path.join(self.output_path, f"Bookscraper_{self.book_name}.log")
@@ -45,8 +43,8 @@ class Bookscraper:
         while True:
             downloader_path = os.path.join(self.output_path, f"{self.current_page_number}")
             os.makedirs(downloader_path, exist_ok=True)
-            page_scraper = Pagescraper(self.current_link, self.current_page_number,
-                                       self.parser_func, self.downloader_func, downloader_path=self.output_path)
+            page_scraper = self.page_scraper(self.current_link, self.current_page_number,
+                                             downloader_path=self.output_path)
             page_scraper.give_session(self.session)
             while page_scraper.state != State.FINISHED and page_scraper.state != State.PARSER_ERROR and \
                     page_scraper.state != State.ERROR:
