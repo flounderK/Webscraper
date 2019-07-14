@@ -64,9 +64,10 @@ class Bookscraper:
                 self.session = page_scraper.take_session()
 
             if self.current_page_count is not None:
-                self.current_page_number += 1
+                self.current_page_count += 1
 
-            if self.current_page_count == self.max_page_count or self.current_link == self.end_link:
+            if self.current_page_count == self.max_page_count or \
+                    self.current_link == self.end_link:
                 break
 
         log_file.close()

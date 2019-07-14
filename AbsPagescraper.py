@@ -118,10 +118,7 @@ class AbsPagescraper(ABC):
     def runner(self):
         """Main method for running scraper, if self.debug is set to true
         only one step will be executed """
-        debug = False
-        if self.debug is True:
-            debug = True
-        while True and debug is True:
+        while True:
             if self.state == State.READY_FOR_SESSION:
                 if self.session is not None:
                     pass
@@ -155,7 +152,8 @@ class AbsPagescraper(ABC):
                 break
             elif self.state == State.PARSER_ERROR or self.state == State.ERROR:
                 break
-            debug = False
+            if self.debug is True:
+                break
 
     def __repr__(self):
         return f"State: {self.state}\n" \

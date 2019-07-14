@@ -25,7 +25,7 @@ class PagescraperTest(unittest.TestCase):
         self.assertEqual(self.page_scraper.state, State.FINISHED)
 
     def testbookscraper(self):
-        book_scraper = Bookscraper("session", "link", self.page_scraper, book_name="bookname",
+        book_scraper = Bookscraper("session", "link", self.page_scraper.__class__, book_name="bookname",
                                    max_page_count=25)
         try:
             book_scraper.run()
