@@ -1,4 +1,4 @@
-from Pagescraper import State
+from AbsPagescraper import State
 import time
 import requests
 import shutil

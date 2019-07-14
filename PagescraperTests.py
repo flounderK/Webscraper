@@ -1,4 +1,4 @@
-from Pagescraper import AbsPagescraper, State, ParserReturn
+from AbsPagescraper import AbsPagescraper, State, ParserReturn
 from Bookscraper import Bookscraper
 import unittest
 
