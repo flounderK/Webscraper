@@ -1,6 +1,6 @@
 from enum import Enum
 import os
-from abc import ABC, abstractmethod, ABCMeta
+from abc import ABC, abstractmethod
 
 
 class State(Enum):
@@ -15,9 +15,13 @@ class State(Enum):
 
 
 class ParserReturn:
-    def __init__(self):
-        self.next_link = str()
-        self.additional_links = dict()
+    def __init__(self, next_link: str = str(), additional_links: dict = dict()):
+        """Schema for expected return value of AbsPagescraper.parser override
+        :param next_link: Next link to download
+        :param additional_links: Additional Links related to this page to download
+        """
+        self.next_link = next_link
+        self.additional_links = additional_links
 
     def __repr__(self):
         return f"{self.next_link}\n" \
@@ -25,7 +29,7 @@ class ParserReturn:
 
 
 class AbsPagescraper(ABC):
-    def __init__(self, link, page_number, retry_count=3, downloader_path=os.getcwd()):
+    def __init__(self, link, page_number, retry_count=3, downloader_path=os.getcwd(), debug=False):
         """
         Template for a scraper designed to download a page, find a specific link in the page, and
         download other specified files from the page. The user must supply a function for downloading and parsing.
@@ -33,8 +37,6 @@ class AbsPagescraper(ABC):
         page.
         :param link:
         :param page_number:
-        :param parser_func:
-        :param downloader_func:
         :param retry_count:
         :param downloader_path:
         """
@@ -52,13 +54,26 @@ class AbsPagescraper(ABC):
         self.log_file_name = os.path.join(self.downloader_path, f"page{page_number}.log")
         self.first_downloader_pass = True
         self.additional_link_generator = None
+        self.debug = debug
 
     @abstractmethod
     def downloader(self, session, link, filename):
+        """
+        Downloader that should be overridden
+        :param session: Whatever shared session is being used for downloads
+        :param link: Link of page to download
+        :param filename: Filename to store the downloaded page as
+        :return: No return value
+        """
         pass
 
     @abstractmethod
-    def parser(self, file_name):
+    def parser(self, file_name) -> ParserReturn:
+        """
+        Parser that should be overridden
+        :param file_name:
+        :return: A ParserReturn object
+        """
         pass
 
     def __downloader(self, link, file_name):
@@ -71,11 +86,13 @@ class AbsPagescraper(ABC):
             self.retry_count -= 1
         self.first_downloader_pass = False
 
-    def __parser(self, file) -> ParserReturn:
+    def __parser(self, file):
         """parser should accept a file name parameter and return a tuple in the form:
         (next_link, {additional_link: filename, additional_link: filename})"""
         try:
-            self.next_link, self.additional_links = self.parser(file)
+            parser_return = self.parser(file)
+            self.next_link = parser_return.next_link
+            self.additional_links = parser_return.additional_links
             self.additional_link_generator = self.__get_additional_link()
             self.state = State.RUNNING_DOWNLOADER
         except Exception as err:
@@ -99,7 +116,12 @@ class AbsPagescraper(ABC):
         yield None
 
     def runner(self):
-        while True:
+        """Main method for running scraper, if self.debug is set to true
+        only one step will be executed """
+        debug = False
+        if self.debug is True:
+            debug = True
+        while True and debug is True:
             if self.state == State.READY_FOR_SESSION:
                 if self.session is not None:
                     pass
@@ -133,6 +155,7 @@ class AbsPagescraper(ABC):
                 break
             elif self.state == State.PARSER_ERROR or self.state == State.ERROR:
                 break
+            debug = False
 
     def __repr__(self):
         return f"State: {self.state}\n" \

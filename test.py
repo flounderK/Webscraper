@@ -1,25 +1,31 @@
-from Pagescraper import Pagescraper, State
+from Pagescraper import AbsPagescraper, State, ParserReturn
 from Bookscraper import Bookscraper
 import unittest
 
 
-def mock_parser(file_name):
-    return "http://fakenextlink.html", {"http://fakeadditionallink/stuff.css": "stuff.css",
-                                        "http://anotherfakeadditionallink/stuff.jpg": "stuff.jpg"}
+class TestPagescraper(AbsPagescraper):
 
+    def parser(self, filename):
+        """Fake parser"""
+        additional_link_dict = {"http://fakeadditionallink/stuff.css": "stuff.css",
+                                "http://anotherfakeadditionallink/stuff.jpg": "stuff.jpg"}
+        return ParserReturn("http://fakenextlink.html", additional_link_dict)
 
-def mock_downloader(session, link, file_name):
-    pass
+    def downloader(self, session, link, filename):
+        pass
 
 
 class PagescraperTest(unittest.TestCase):
+    def setUp(self):
+        self.page_scraper = TestPagescraper("originallink", 1)
+
     def testpagescraper(self):
-        page_scraper = Pagescraper("originallink", 1, mock_parser, mock_downloader)
-        page_scraper.give_session("session")
-        self.assertEqual(page_scraper.state, State.FINISHED)
+
+        self.page_scraper.give_session("session")
+        self.assertEqual(self.page_scraper.state, State.FINISHED)
 
     def testbookscraper(self):
-        book_scraper = Bookscraper("session", "link", mock_parser, mock_downloader, book_name="bookname",
+        book_scraper = Bookscraper("session", "link", self.page_scraper, book_name="bookname",
                                    max_page_count=25)
         try:
             book_scraper.run()
